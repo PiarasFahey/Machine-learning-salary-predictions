@@ -46,10 +46,38 @@ valid.df <- salaries.fixed[valid.index, ]
 mean.salary <-mean(salaries$salary_in_usd)
 sd.salary <- sd(salaries$salary_in_usd)
 
-# making a knn model
+
+# trying different values to optimise for k
+accuracy.df <- data.frame()
+set.seed(123)
+for (i in 1:15) {
+  knn.pred <- class::knn(train = train.df[, -1],
+                         test = valid.df[, -1],
+                         cl = train.df$salaries, k = i)
+  knn.pred.salary <- (as.numeric(as.character(knn.pred))*sd.salary)+mean.salary
+  valid.salary <- valid.df$salaries*sd.salary+mean.salary
+  accuracy.df[i,1] <- MAPE(knn.pred.salary, valid.salary)
+  accuracy.df[i,2] <- RMSE(knn.pred.salary, valid.salary)
+  accuracy.df[i,3] <- i
+}
+colnames(accuracy.df) <- c("MAPE", "RMSE", "k")
+
+# plotting accuracy results to show best k value
+theme_set(theme_solarized())
+ggplot(accuracy.df, aes(x = k, y = MAPE)) +
+  geom_line(size = .4) +
+  geom_point(color = "red", size = 3) +
+  labs(title = "MAPE for each k")
+
+ggplot(accuracy.df, aes(x = k, y = RMSE)) +
+  geom_line(size = .4) +
+  geom_point(color = "red", size = 3) +
+  labs(title = "RMSE for each k")
+
+# k = 3 has the lowest errors so will train the model on that
 knn.pred <- knn(train = train.df[,-1],
                 test = valid.df[,-1],
-                cl = train.df$salaries, k = 2)
+                cl = train.df$salaries, k = 3)
 
 # knn model's prediction
 knn.pred.salary <- (as.numeric(as.character(knn.pred))*sd.salary)+mean.salary
@@ -58,28 +86,6 @@ valid.salary <- (valid.df$salaries*sd.salary)+mean.salary
 # some error metrics here
 RMSE(knn.pred.salary, valid.salary)
 MAPE(knn.pred.salary, valid.salary)
-
-# trying different values to optimise for k
-accuracy.df <- data.frame()
-for (i in 1:15) {
-  knn.pred <- class::knn(train = train.df[, -1],
-                         test = valid.df[, -1],
-                         cl = train.df$salaries, k = i)
-  knn.pred.salary <- (as.numeric(as.character(knn.pred))*sd.salary)+mean.salary
-  valid.salary <- valid.df$salaries*sd.salary+mean.salary
-  accuracy.df[i,1] <- MAPE(knn.pred.salary, valid.salary)
-}
-
-colnames(accuracy.df) <- "MAPE"
-accuracy.df$k <- c(1:15)
-
-
-# plotting accuracy results to show best k value
-theme_set(theme_solarized())
-ggplot(accuracy.df, aes(x = k, y = MAPE)) +
-  geom_line(size = .4) +
-  geom_point(color = "red", size = 3) +
-  labs(title = "MAPE for each k")
 
 # plotting difference in predicted salaries vs actual salaries from validation set
 knn.salary.diff <- data.frame(number = 1:478,
@@ -96,6 +102,7 @@ ggplot(knn.salary.diff, aes(x = number, y = difference)) +
     y = "Percentage error"
   ) +
   ylim(1,-2)
+
 
 # moving on to clustering
 d.norm <- dist(salaries.fixed, method = "euclidean")
