@@ -12,6 +12,9 @@ library(dplyr)
 library(neuralnet)
 library(countrycode)
 library(ggthemes)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
 
 # importing  data
 salaries <- read.csv('Salaries.fixed.csv')
@@ -144,5 +147,49 @@ model.lm <- lm(salaries ~ .,
 
 # applying linear model to validation set and checking error
 salary.lm.pred <- predict.lm(model.lm, valid.df[,-c(1)])
-MAPE(salary.lm.pred, valid.salary)
-RMSE(salary.lm.pred, valid.salary)
+MAPE(as.numeric(as.character(salary.lm.pred))*sd.salary + mean.salary, valid.salary)
+RMSE(as.numeric(as.character(salary.lm.pred))*sd.salary + mean.salary, valid.salary)
+
+# decision trees
+# finding which parameters work best
+results <- data.frame(Depth = numeric(), Minbucket = numeric(), CP = numeric(), RMSE = numeric())
+for (depth in c(4, 6, 8)) {
+  for (bucket in c(10, 20, 30)) {
+    for (cp in c(1:10)/100) {
+    tr <- rpart(salaries ~ ., data = train.df, minbucket = bucket, maxdepth = depth, cp = cp)
+    pred <- predict(tr, valid.df[, -1])
+    rmse <- RMSE((pred*sd.salary)+mean.salary, valid.salary)
+    results <- rbind(results, data.frame(Depth = depth, Minbucket = bucket, CP = cp, RMSE = rmse))
+    }
+  }
+}
+
+
+results[which.min(results$RMSE),]
+
+# training model on best parameters
+tr <- rpart(salaries ~ ., data = train.df, minbucket = 10, maxdepth = 6, cp = 0.01)
+prp(tr)
+
+# pruned decision tree
+pfit<- prune(tr, cp = 0.05)
+prp(pfit)
+
+# variable importance
+print(tr$variable.importance)
+print(pfit$variable.importance)
+
+# predicting with tree models
+pred.tr <- predict(tr, valid.df[,-1])
+pred.pfit <- predict(pfit, valid.df[, -1])
+
+# checking errors for decision tree models
+tr.pred.salary <- (pred.tr*sd.salary)+mean.salary
+pfit.pred.salary <- (pred.pfit*sd.salary)+mean.salary
+
+# some error metrics here
+RMSE(tr.pred.salary, valid.salary)
+MAPE(tr.pred.salary, valid.salary)
+
+RMSE(pfit.pred.salary, valid.salary)
+MAPE(pfit.pred.salary, valid.salary)
