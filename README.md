@@ -13,8 +13,6 @@ Techniques Used
 
     Decision Trees
 
-Features for Salary Prediction
-
 The models predict salaries based on the following parameters:
 
     salary_in_usd: Salary in USD
