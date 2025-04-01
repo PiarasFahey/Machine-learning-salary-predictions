@@ -152,20 +152,28 @@ RMSE(as.numeric(as.character(salary.lm.pred))*sd.salary + mean.salary, valid.sal
 
 # decision trees
 # finding which parameters work best
-results <- data.frame(Depth = numeric(), Minbucket = numeric(), CP = numeric(), RMSE = numeric())
+errors.tr <- data.frame(Depth = numeric(), Minbucket = numeric(), CP = numeric(), RMSE = numeric())
 for (depth in c(4, 6, 8)) {
   for (bucket in c(10, 20, 30)) {
     for (cp in c(1:10)/100) {
     tr <- rpart(salaries ~ ., data = train.df, minbucket = bucket, maxdepth = depth, cp = cp)
     pred <- predict(tr, valid.df[, -1])
     rmse <- RMSE((pred*sd.salary)+mean.salary, valid.salary)
-    results <- rbind(results, data.frame(Depth = depth, Minbucket = bucket, CP = cp, RMSE = rmse))
+    errors.tr <- rbind(results, data.frame(Depth = depth, Minbucket = bucket, CP = cp, RMSE = rmse))
     }
   }
 }
 
+# plotting errors for parameter iterations
+ggplot(results, aes(x = RMSE, y = Depth, colour = as.factor(Minbucket))) +
+  geom_point(size = 3) +
+  labs(title = "RMSE for each iteration of parameters", 
+       x = "Depth", 
+       y = "RMSE", 
+       colour = "Minbucket") +
+  facet_wrap(~ CP, scales = "free_y") 
 
-results[which.min(results$RMSE),]
+errors.tr[which.min(errors.tr$RMSE),]
 
 # training model on best parameters
 tr <- rpart(salaries ~ ., data = train.df, minbucket = 10, maxdepth = 6, cp = 0.01)
