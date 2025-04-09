@@ -5,7 +5,7 @@ Techniques Used
 
     K-Nearest Neighbors (KNN)
 
-    Clustering
+    K-means Clustering
 
     Neural Networks
 
