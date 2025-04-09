@@ -15,8 +15,6 @@ Techniques Used
 
 The models predict salaries based on the following parameters:
 
-    salary_in_usd: Salary in USD
-
     experience_level: Level of experience (e.g., Junior, Mid, Senior)
 
     employment_type: Type of employment (e.g., Full-time, Part-time)
